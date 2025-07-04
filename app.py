@@ -132,7 +132,7 @@ if st.button("📤 Submit Entry"):
         }
 
         # Send POST request to FastAPI
-        response = requests.post("http://127.0.0.1:8000/submit/", data=payload)
+       response = requests.post("https://fastapi-farm-be.onrender.com/submit-entry", json=payload)
 
         if response.status_code == 200:
             st.success(response.json().get("message", "✅ Entry submitted successfully!"))
