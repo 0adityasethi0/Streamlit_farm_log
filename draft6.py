@@ -1,15 +1,6 @@
 import streamlit as st
-import mysql.connector
+import requests
 from datetime import date, datetime
-
-# ---------- DB Connection ----------
-def get_connection():
-    return mysql.connector.connect(
-        host="127.0.0.1",
-        user="root",
-        password="Aditya@1210",
-        database="farm_db"
-    )
 
 st.set_page_config(page_title="Farm Log Entry", layout="wide")
 st.title("🌾 Daily Farm Log Entry")
@@ -17,7 +8,6 @@ st.title("🌾 Daily Farm Log Entry")
 # ---------- Today's Date and time ----------
 entry_date = date.today()
 entry_time = datetime.now()
-
 st.markdown(f"📅 **Entry Date and Time**: `{entry_time}`")
 st.markdown("---")
 
@@ -85,25 +75,18 @@ with st.expander("⛽ Fuel Consumption", expanded=False):
         Total_petrol_used = st.number_input("Total Petrol Used (L)")
         Total_disel_used = st.number_input("Total Diesel Used (L)")
 
-
-# ---------- Alerts for Abnormal Values ----------
+# ---------- Alerts ----------
 with st.expander("🚨 System Alerts", expanded=True):
-
     if max_temp > 45:
         st.error("🌡️ Max Temperature is abnormally high!")
-
     if min_temp < 5:
         st.warning("❄️ Min Temperature is too low — possible frost risk.")
-
     if max_humidity > 95:
         st.warning("💧 Max Humidity very high — risk of fungal issues.")
-
     if rainfall_mm > 200:
         st.warning("🌧️ Heavy rainfall recorded — check field conditions.")
-
     if total_fertilizer_used > 50:
         st.warning("⚠️ High fertilizer usage — double-check dosage.")
-
     fuel_values = [
         fuel_used_in_tractor1_big,
         fuel_used_in_tractor2_small,
@@ -114,43 +97,47 @@ with st.expander("🚨 System Alerts", expanded=True):
     if any(fuel > 100 for fuel in fuel_values):
         st.warning("⛽ High fuel usage detected in one or more machines.")
 
-
 # ---------- Submit ----------
 st.markdown("---")
 if st.button("📤 Submit Entry"):
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-        insert_query = """
-        INSERT INTO daily_farm_log (
-            entry_date, entry_time, crop_name, activity, labour_working_per_plant, canteen,
-            max_temp, min_temp, rainfall_mm, cumulative_rainfall_mm, max_humidity, min_humidity,
-            irrigation_volume, fertigation_volume, total_fertilizer_used,
-            Major_pest_observation, pest_control_measure, pestiside_name, dose_per_litre,
-            total_volume_used, Status_of_condition,
-            fuel_used_in_tractor1_big, fuel_used_in_tractor2_small, grass_cutter,
-            Auger_sprayer, Company_Bike, miscellaneous,
-            Total_petrol_used, Total_disel_used
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        data = (
-            entry_date, entry_time, crop_name, activity, labour_working_per_plant, canteen,
-            max_temp, min_temp, rainfall_mm, cumulative_rainfall_mm, max_humidity, min_humidity,
-            irrigation_volume, fertigation_volume, total_fertilizer_used,
-            Major_pest_observation, pest_control_measure, pestiside_name, dose_per_litre,
-            total_volume_used, Status_of_condition,
-            fuel_used_in_tractor1_big, fuel_used_in_tractor2_small, grass_cutter,
-            Auger_sprayer, Company_Bike, miscellaneous,
-            Total_petrol_used, Total_disel_used
-        )
-        cursor.execute(insert_query, data)
-        conn.commit()
-        st.success("✅ Entry successfully saved!")
-        st.balloons()
+    data = {
+        "entry_date": str(entry_date),
+        "entry_time": str(entry_time),
+        "crop_name": crop_name,
+        "activity": activity,
+        "labour_working_per_plant": labour_working_per_plant,
+        "canteen": canteen,
+        "max_temp": max_temp,
+        "min_temp": min_temp,
+        "rainfall_mm": rainfall_mm,
+        "cumulative_rainfall_mm": cumulative_rainfall_mm,
+        "max_humidity": max_humidity,
+        "min_humidity": min_humidity,
+        "irrigation_volume": irrigation_volume,
+        "fertigation_volume": fertigation_volume,
+        "total_fertilizer_used": total_fertilizer_used,
+        "Major_pest_observation": Major_pest_observation,
+        "pest_control_measure": pest_control_measure,
+        "pestiside_name": pestiside_name,
+        "dose_per_litre": dose_per_litre,
+        "total_volume_used": total_volume_used,
+        "Status_of_condition": Status_of_condition,
+        "fuel_used_in_tractor1_big": fuel_used_in_tractor1_big,
+        "fuel_used_in_tractor2_small": fuel_used_in_tractor2_small,
+        "grass_cutter": grass_cutter,
+        "Auger_sprayer": Auger_sprayer,
+        "Company_Bike": Company_Bike,
+        "miscellaneous": miscellaneous,
+        "Total_petrol_used": Total_petrol_used,
+        "Total_disel_used": Total_disel_used
+    }
 
+    try:
+        res = requests.post("http://127.0.0.1:8000/submit-entry", json=data)
+        if res.status_code == 200:
+            st.success("✅ Entry submitted via FastAPI!")
+            st.balloons()
+        else:
+            st.error(f"❌ FastAPI Error: {res.json()['detail']}")
     except Exception as e:
-        st.error(f"❌ Error: {e}")
-    finally:
-        if 'cursor' in locals(): cursor.close()
-        if 'conn' in locals(): conn.close()
+        st.error(f"❌ Request Failed: {e}")
