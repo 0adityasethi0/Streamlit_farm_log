@@ -131,13 +131,14 @@ if st.button("📤 Submit Entry"):
             "Total_disel_used": Total_disel_used
         }
 
-        # Send POST request to FastAPI
-       response = requests.post("https://fastapi-farm-be.onrender.com/submit-entry", json=payload)
+       # Send POST request to FastAPI
+        response = requests.post("https://fastapi-farm-be.onrender.com/submit-entry", json=payload)
 
         if response.status_code == 200:
             st.success(response.json().get("message", "✅ Entry submitted successfully!"))
         else:
-            st.error(response.json().get("error", "❌ Submission failed. Check server logs."))
+            st.error(f"❌ Submission failed. Status: {response.status_code}")
+            st.text(response.text)
 
     except Exception as e:
         st.error(f"❌ Error: {e}")
